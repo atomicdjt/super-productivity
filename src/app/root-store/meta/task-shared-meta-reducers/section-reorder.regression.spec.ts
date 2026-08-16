@@ -7,11 +7,17 @@ import {
   moveTaskToTopInTodayList,
   moveTaskUpInTodayList,
 } from '../../../features/work-context/store/work-context-meta.actions';
-import { SECTION_FEATURE_NAME } from '../../../features/section/store/section.reducer';
+import {
+  SECTION_FEATURE_NAME,
+  sectionReducer,
+} from '../../../features/section/store/section.reducer';
 import { SectionState } from '../../../features/section/section.model';
 import { TASK_FEATURE_NAME } from '../../../features/tasks/store/task.reducer';
-import { PROJECT_FEATURE_NAME } from '../../../features/project/store/project.reducer';
-import { TAG_FEATURE_NAME } from '../../../features/tag/store/tag.reducer';
+import {
+  PROJECT_FEATURE_NAME,
+  projectReducer,
+} from '../../../features/project/store/project.reducer';
+import { TAG_FEATURE_NAME, tagReducer } from '../../../features/tag/store/tag.reducer';
 import { sectionSharedMetaReducer } from './section-shared.reducer';
 import { createBaseState, createMockTask } from './test-utils';
 
@@ -90,24 +96,32 @@ const createState = (
   return state;
 };
 
-describe('sectionSharedMetaReducer section reorder regression #9574', () => {
-  let mockReducer: jasmine.Spy;
-  let metaReducer: ActionReducer<RootState, Action>;
+const rootReducer: ActionReducer<RootState, Action> = (state, action) => {
+  if (!state) throw new Error('Expected initialized root state');
 
-  beforeEach(() => {
-    mockReducer = jasmine.createSpy('reducer').and.callFake((state) => state);
-    metaReducer = sectionSharedMetaReducer(mockReducer);
-  });
-
-  const forwardedSectionTaskIds = (): string[] => {
-    const forwarded = mockReducer.calls.mostRecent().args[0] as StateWithSections;
-    return forwarded[SECTION_FEATURE_NAME].entities.section1?.taskIds ?? [];
+  return {
+    ...state,
+    [SECTION_FEATURE_NAME]: sectionReducer(state[SECTION_FEATURE_NAME], action),
+    [PROJECT_FEATURE_NAME]: projectReducer(state[PROJECT_FEATURE_NAME], action),
+    [TAG_FEATURE_NAME]: tagReducer(state[TAG_FEATURE_NAME], action),
   };
+};
 
-  it('moves a task to the bottom of its section in the same reducer pass', () => {
+const metaReducer = sectionSharedMetaReducer(rootReducer);
+
+const sectionTaskIds = (state: StateWithSections, sectionId = 'section1'): string[] =>
+  state[SECTION_FEATURE_NAME].entities[sectionId]?.taskIds ?? [];
+
+const projectTaskIds = (state: StateWithSections): string[] =>
+  state[PROJECT_FEATURE_NAME].entities.project1?.taskIds ?? [];
+
+const tagTaskIds = (state: StateWithSections): string[] =>
+  state[TAG_FEATURE_NAME].entities.tag1?.taskIds ?? [];
+
+describe('sectionSharedMetaReducer section reorder regression #9574', () => {
+  it('moves a task to the bottom in both section and project order', () => {
     const state = createState();
-
-    metaReducer(
+    const result = metaReducer(
       state,
       moveTaskToBottomInTodayList({
         taskId: 't1',
@@ -115,15 +129,15 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         workContextId: 'project1',
         doneTaskIds: [],
       }),
-    );
+    ) as StateWithSections;
 
-    expect(forwardedSectionTaskIds()).toEqual(['t2', 't3', 't1']);
+    expect(sectionTaskIds(result)).toEqual(['t2', 't3', 't1']);
+    expect(projectTaskIds(result)).toEqual(['t2', 't3', 't1']);
   });
 
-  it('moves a task to the top of its section in the same reducer pass', () => {
+  it('moves a task to the top in both section and project order', () => {
     const state = createState();
-
-    metaReducer(
+    const result = metaReducer(
       state,
       moveTaskToTopInTodayList({
         taskId: 't3',
@@ -131,15 +145,15 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         workContextId: 'project1',
         doneTaskIds: [],
       }),
-    );
+    ) as StateWithSections;
 
-    expect(forwardedSectionTaskIds()).toEqual(['t3', 't1', 't2']);
+    expect(sectionTaskIds(result)).toEqual(['t3', 't1', 't2']);
+    expect(projectTaskIds(result)).toEqual(['t3', 't1', 't2']);
   });
 
-  it('moves a task up within its section', () => {
+  it('moves a task up in both section and project order', () => {
     const state = createState();
-
-    metaReducer(
+    const result = metaReducer(
       state,
       moveTaskUpInTodayList({
         taskId: 't2',
@@ -147,15 +161,15 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         workContextId: 'project1',
         doneTaskIds: [...TASK_IDS],
       }),
-    );
+    ) as StateWithSections;
 
-    expect(forwardedSectionTaskIds()).toEqual(['t2', 't1', 't3']);
+    expect(sectionTaskIds(result)).toEqual(['t2', 't1', 't3']);
+    expect(projectTaskIds(result)).toEqual(['t2', 't1', 't3']);
   });
 
-  it('moves a task down within its section', () => {
+  it('moves a task down in both section and project order', () => {
     const state = createState();
-
-    metaReducer(
+    const result = metaReducer(
       state,
       moveTaskDownInTodayList({
         taskId: 't2',
@@ -163,15 +177,15 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         workContextId: 'project1',
         doneTaskIds: [...TASK_IDS],
       }),
-    );
+    ) as StateWithSections;
 
-    expect(forwardedSectionTaskIds()).toEqual(['t1', 't3', 't2']);
+    expect(sectionTaskIds(result)).toEqual(['t1', 't3', 't2']);
+    expect(projectTaskIds(result)).toEqual(['t1', 't3', 't2']);
   });
 
-  it('applies the same section ordering behavior in tag contexts', () => {
+  it('applies the same atomic ordering behavior in tag contexts', () => {
     const state = createState(WorkContextType.TAG, 'tag1');
-
-    metaReducer(
+    const result = metaReducer(
       state,
       moveTaskToBottomInTodayList({
         taskId: 't1',
@@ -179,15 +193,15 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         workContextId: 'tag1',
         doneTaskIds: [],
       }),
-    );
+    ) as StateWithSections;
 
-    expect(forwardedSectionTaskIds()).toEqual(['t2', 't3', 't1']);
+    expect(sectionTaskIds(result)).toEqual(['t2', 't3', 't1']);
+    expect(tagTaskIds(result)).toEqual(['t2', 't3', 't1']);
   });
 
-  it('leaves other sections untouched when they do not contain the moved task', () => {
+  it('leaves unrelated sections untouched', () => {
     const state = createState();
-
-    metaReducer(
+    const result = metaReducer(
       state,
       moveTaskToBottomInTodayList({
         taskId: 't1',
@@ -195,9 +209,8 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         workContextId: 'project1',
         doneTaskIds: [],
       }),
-    );
+    ) as StateWithSections;
 
-    const forwarded = mockReducer.calls.mostRecent().args[0] as StateWithSections;
-    expect(forwarded[SECTION_FEATURE_NAME].entities.section2?.taskIds).toEqual(['other']);
+    expect(sectionTaskIds(result, 'section2')).toEqual(['other']);
   });
 });
