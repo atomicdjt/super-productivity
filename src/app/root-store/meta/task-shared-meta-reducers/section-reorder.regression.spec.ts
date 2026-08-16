@@ -98,13 +98,20 @@ const createState = (
 
 const rootReducer: ActionReducer<RootState, Action> = (state, action) => {
   if (!state) throw new Error('Expected initialized root state');
+  const stateWithSections = state as StateWithSections;
 
   return {
-    ...state,
-    [SECTION_FEATURE_NAME]: sectionReducer(state[SECTION_FEATURE_NAME], action),
-    [PROJECT_FEATURE_NAME]: projectReducer(state[PROJECT_FEATURE_NAME], action),
-    [TAG_FEATURE_NAME]: tagReducer(state[TAG_FEATURE_NAME], action),
-  };
+    ...stateWithSections,
+    [SECTION_FEATURE_NAME]: sectionReducer(
+      stateWithSections[SECTION_FEATURE_NAME],
+      action,
+    ),
+    [PROJECT_FEATURE_NAME]: projectReducer(
+      stateWithSections[PROJECT_FEATURE_NAME],
+      action,
+    ),
+    [TAG_FEATURE_NAME]: tagReducer(stateWithSections[TAG_FEATURE_NAME], action),
+  } as RootState;
 };
 
 const metaReducer = sectionSharedMetaReducer(rootReducer);
