@@ -145,7 +145,7 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         taskId: 't2',
         workContextType: WorkContextType.PROJECT,
         workContextId: 'project1',
-        doneTaskIds: [],
+        doneTaskIds: [...TASK_IDS],
       }),
     );
 
@@ -161,7 +161,7 @@ describe('sectionSharedMetaReducer section reorder regression #9574', () => {
         taskId: 't2',
         workContextType: WorkContextType.PROJECT,
         workContextId: 'project1',
-        doneTaskIds: [],
+        doneTaskIds: [...TASK_IDS],
       }),
     );
 
