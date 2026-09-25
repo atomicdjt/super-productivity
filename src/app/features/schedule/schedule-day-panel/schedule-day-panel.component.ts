@@ -150,7 +150,8 @@ export class ScheduleDayPanelComponent implements AfterViewInit, OnDestroy {
       this._ngZone.run(() => this._handlePointerUp(event));
     });
 
-    // Initial scroll to current time after view initialization
+    // Deliberately scroll to the current time only once when the panel opens.
+    // Do not tie this to scheduleRefreshTick; doing so reintroduces the snap-back from #9906.
     this._scheduleScrollToCurrentTime();
   }
 
