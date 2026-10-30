@@ -630,7 +630,11 @@ describe('LocalRestApiTaskRepeatCfgRoutesService', () => {
       );
       expect(repeatCfgServiceMock.updateTaskRepeatCfg).toHaveBeenCalledOnceWith(
         'weekly',
-        jasmine.objectContaining({ quickSetting: 'CUSTOM', wednesday: false, friday: true }),
+        jasmine.objectContaining({
+          quickSetting: 'CUSTOM',
+          wednesday: false,
+          friday: true,
+        }),
         false,
       );
     });
